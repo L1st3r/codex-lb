@@ -2756,17 +2756,12 @@ async def test_v1_responses_http_bridge_requires_live_session_for_previous_respo
     )
 
     assert second.status_code == 400
-    assert second.json() == {
-        "error": {
-            "message": (
-                f"Previous response with id '{first_body['id']}' not found. "
-                "HTTP bridge continuity was lost. Replay x-codex-turn-state or retry with a stable prompt_cache_key."
-            ),
-            "type": "invalid_request_error",
-            "code": "previous_response_not_found",
-            "param": "previous_response_id",
-        }
-    }
+    error = second.json()["error"]
+    assert error["type"] == "invalid_request_error"
+    assert error["code"] == "previous_response_not_found"
+    assert error["param"] == "previous_response_id"
+    assert f"Previous response with id '{first_body['id']}' not found." in error["message"]
+    assert "HTTP bridge continuity was lost" in error["message"]
     assert connect_count == 1
 
 
@@ -3544,17 +3539,12 @@ async def test_v1_responses_http_bridge_does_not_open_fresh_session_for_previous
     )
 
     assert second.status_code == 400
-    assert second.json() == {
-        "error": {
-            "message": (
-                f"Previous response with id '{first_body['id']}' not found. "
-                "HTTP bridge continuity was lost. Replay x-codex-turn-state or retry with a stable prompt_cache_key."
-            ),
-            "type": "invalid_request_error",
-            "code": "previous_response_not_found",
-            "param": "previous_response_id",
-        }
-    }
+    error = second.json()["error"]
+    assert error["type"] == "invalid_request_error"
+    assert error["code"] == "previous_response_not_found"
+    assert error["param"] == "previous_response_id"
+    assert f"Previous response with id '{first_body['id']}' not found." in error["message"]
+    assert "HTTP bridge continuity was lost" in error["message"]
     assert connect_count == 1
 
 

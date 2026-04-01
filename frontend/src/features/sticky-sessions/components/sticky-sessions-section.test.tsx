@@ -9,7 +9,7 @@ vi.mock("@/features/sticky-sessions/hooks/use-sticky-sessions", () => ({
   useStickySessions: vi.fn(),
 }));
 
-const useStickySessionsMock = vi.mocked(useStickySessions);
+const useStickySessionsMock = useStickySessions as unknown as ReturnType<typeof vi.fn>;
 
 describe("StickySessionsSection", () => {
   beforeEach(() => {
@@ -19,7 +19,7 @@ describe("StickySessionsSection", () => {
   it("renders rows and supports selection, purge, and remove actions", async () => {
     const user = userEvent.setup();
     const deleteMutation = {
-      mutateAsync: vi.fn().mockResolvedValue(undefined),
+      mutateAsync: vi.fn().mockResolvedValue({ deletedCount: 2, deleted: [], failed: [] }),
       isPending: false,
       error: null,
     };
@@ -83,12 +83,12 @@ describe("StickySessionsSection", () => {
     expect(screen.getByText("1")).toBeInTheDocument();
     expect(screen.getByText("1–2 of 2")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("checkbox", { name: "Select all visible sticky sessions" }));
+    await user.click(screen.getByRole("checkbox", { name: "Select all sticky sessions on current page" }));
     expect(screen.getByText("Selected")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Remove selected" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Delete Sessions" })).toBeEnabled();
 
-    await user.click(screen.getByRole("button", { name: "Remove selected" }));
-    await user.click(screen.getByRole("button", { name: "Remove selected" }));
+    await user.click(screen.getByRole("button", { name: "Delete Sessions" }));
+    await user.click(screen.getByRole("button", { name: "Delete Sessions" }));
 
     await waitFor(() => {
       expect(deleteMutation.mutateAsync).toHaveBeenNthCalledWith(1, [
@@ -111,7 +111,7 @@ describe("StickySessionsSection", () => {
     });
 
     await user.click(screen.getAllByRole("button", { name: "Remove" })[0]!);
-    await user.click(screen.getByRole("button", { name: "Remove" }));
+    await user.click(screen.getByRole("button", { name: "Delete" }));
 
     await waitFor(() => {
       expect(deleteMutation.mutateAsync).toHaveBeenNthCalledWith(2, [
@@ -121,6 +121,44 @@ describe("StickySessionsSection", () => {
         },
       ]);
     });
+  });
+
+  it("falls back to the nearest valid page when the current page becomes empty", () => {
+    const setOffset = vi.fn();
+
+    useStickySessionsMock.mockReturnValue({
+      params: {
+        staleOnly: false,
+        offset: 10,
+        limit: 10,
+      },
+      setOffset,
+      setLimit: vi.fn(),
+      stickySessionsQuery: {
+        data: {
+          entries: [],
+          stalePromptCacheCount: 0,
+          total: 10,
+          hasMore: false,
+        },
+        isLoading: false,
+        error: null,
+      },
+      deleteMutation: {
+        mutateAsync: vi.fn(),
+        isPending: false,
+        error: null,
+      },
+      purgeMutation: {
+        mutateAsync: vi.fn(),
+        isPending: false,
+        error: null,
+      },
+    } as never);
+
+    render(<StickySessionsSection />);
+
+    expect(setOffset).toHaveBeenCalledWith(0);
   });
 
   it("keeps stale purge enabled when hidden rows are stale", () => {

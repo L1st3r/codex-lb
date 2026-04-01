@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Pin } from "lucide-react";
 
 import { AlertMessage } from "@/components/alert-message";
@@ -76,6 +76,26 @@ export function StickySessionsSection() {
   const selectedDeleteTargets = deleteSelectedDialog.data ?? [];
   const selectedDeleteCount = selectedDeleteTargets.length;
 
+  useEffect(() => {
+    if (!stickySessionsQuery.isLoading && total > 0 && entries.length === 0 && params.offset > 0) {
+      const lastValidOffset = Math.max(0, Math.floor((total - 1) / params.limit) * params.limit);
+      if (lastValidOffset !== params.offset) {
+        setOffset(lastValidOffset);
+      }
+    }
+  }, [entries.length, params.limit, params.offset, setOffset, stickySessionsQuery.isLoading, total]);
+
+  useEffect(() => {
+    if (selectedRowIds.length === 0) {
+      return;
+    }
+    const visibleRowIds = new Set(entries.map((entry) => stickySessionRowId(entry)));
+    setSelectedRowIds((current) => {
+      const next = current.filter((rowId) => visibleRowIds.has(rowId));
+      return next.length === current.length ? current : next;
+    });
+  }, [entries, selectedRowIds.length]);
+
   const setSelected = (target: StickySessionIdentifier, checked: boolean) => {
     const rowId = stickySessionRowId(target);
     setSelectedRowIds((current) => {
@@ -132,7 +152,7 @@ export function StickySessionsSection() {
             disabled={busy || selectedCount === 0}
             onClick={() => deleteSelectedDialog.show(selectedEntries)}
           >
-            Remove selected
+            Delete Sessions
           </Button>
           <Button
             type="button"
@@ -166,7 +186,7 @@ export function StickySessionsSection() {
                   <TableRow>
                     <TableHead className="w-[5%] min-w-[3rem] pl-4 text-[11px] uppercase tracking-wider text-muted-foreground/80">
                       <Checkbox
-                        aria-label="Select all visible sticky sessions"
+                        aria-label="Select all sticky sessions on current page"
                         checked={allVisibleSelected ? true : someVisibleSelected ? "indeterminate" : false}
                         disabled={busy || !hasEntries}
                         onCheckedChange={(checked) => setAllVisibleSelected(checked === true)}
@@ -272,7 +292,7 @@ export function StickySessionsSection() {
             ? `${kindLabel(deleteDialog.data.kind)} mapping ${deleteDialog.data.key} will stop pinning future requests.`
             : ""
         }
-        confirmLabel="Remove"
+        confirmLabel="Delete"
         onOpenChange={deleteDialog.onOpenChange}
         onConfirm={() => {
           if (!deleteDialog.data) {
@@ -286,20 +306,21 @@ export function StickySessionsSection() {
 
       <ConfirmDialog
         open={deleteSelectedDialog.open}
-        title="Remove selected sticky sessions"
+        title="Delete selected sticky sessions"
         description={
           selectedDeleteCount === 1
-            ? "The selected sticky session will stop pinning future requests."
-            : `${selectedDeleteCount} selected sticky sessions will stop pinning future requests.`
+            ? "Delete the selected sticky session? Failed deletions will be reported."
+            : `Delete ${selectedDeleteCount} selected sticky sessions? Failed deletions will be reported.`
         }
-        confirmLabel="Remove selected"
+        confirmLabel="Delete Sessions"
         onOpenChange={deleteSelectedDialog.onOpenChange}
         onConfirm={() => {
           if (selectedDeleteTargets.length === 0) {
             return;
           }
-          void deleteMutation.mutateAsync(selectedDeleteTargets).finally(() => {
-            setSelectedRowIds([]);
+          void deleteMutation.mutateAsync(selectedDeleteTargets).then((response) => {
+            setSelectedRowIds(response.failed.map((entry) => stickySessionRowId(entry)));
+          }).finally(() => {
             deleteSelectedDialog.hide();
           });
         }}

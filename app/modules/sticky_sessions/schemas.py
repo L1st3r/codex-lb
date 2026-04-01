@@ -39,8 +39,16 @@ class StickySessionsDeleteRequest(DashboardModel):
     sessions: list[StickySessionIdentifier] = Field(min_length=1, max_length=500)
 
 
+class StickySessionDeleteFailure(DashboardModel):
+    key: str
+    kind: StickySessionKind
+    reason: str
+
+
 class StickySessionsDeleteResponse(DashboardModel):
     deleted_count: int
+    deleted: list[StickySessionIdentifier] = Field(default_factory=list)
+    failed: list[StickySessionDeleteFailure] = Field(default_factory=list)
 
 
 class StickySessionsPurgeRequest(DashboardModel):

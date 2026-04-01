@@ -29,6 +29,23 @@ class StickySessionListData:
     has_more: bool
 
 
+@dataclass(frozen=True, slots=True)
+class StickySessionDeleteFailureData:
+    key: str
+    kind: StickySessionKind
+    reason: str
+
+
+@dataclass(frozen=True, slots=True)
+class StickySessionsDeleteData:
+    deleted: list[tuple[str, StickySessionKind]]
+    failed: list[StickySessionDeleteFailureData]
+
+    @property
+    def deleted_count(self) -> int:
+        return len(self.deleted)
+
+
 class StickySessionsService:
     def __init__(
         self,
@@ -79,8 +96,25 @@ class StickySessionsService:
     async def delete_entry(self, key: str, *, kind: StickySessionKind) -> bool:
         return await self._repository.delete(key, kind=kind)
 
-    async def delete_entries(self, entries: Sequence[tuple[str, StickySessionKind]]) -> int:
-        return await self._repository.delete_entries(entries)
+    async def delete_entries(self, entries: Sequence[tuple[str, StickySessionKind]]) -> StickySessionsDeleteData:
+        deleted: list[tuple[str, StickySessionKind]] = []
+        failed: list[StickySessionDeleteFailureData] = []
+        seen: set[tuple[str, StickySessionKind]] = set()
+
+        for key, kind in entries:
+            if not key:
+                continue
+            target = (key, kind)
+            if target in seen:
+                continue
+            seen.add(target)
+            removed = await self._repository.delete(key, kind=kind)
+            if removed:
+                deleted.append(target)
+            else:
+                failed.append(StickySessionDeleteFailureData(key=key, kind=kind, reason="not_found"))
+
+        return StickySessionsDeleteData(deleted=deleted, failed=failed)
 
     async def purge_entries(self) -> int:
         settings = await self._settings_repository.get_or_create()

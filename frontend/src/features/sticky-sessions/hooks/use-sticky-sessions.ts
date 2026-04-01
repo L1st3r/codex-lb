@@ -7,7 +7,11 @@ import {
   listStickySessions,
   purgeStickySessions,
 } from "@/features/sticky-sessions/api";
-import type { StickySessionIdentifier, StickySessionsListParams } from "@/features/sticky-sessions/schemas";
+import type {
+  StickySessionIdentifier,
+  StickySessionsDeleteResponse,
+  StickySessionsListParams,
+} from "@/features/sticky-sessions/schemas";
 
 const DEFAULT_STICKY_SESSIONS_LIMIT = 10;
 
@@ -41,16 +45,20 @@ export function useStickySessions() {
 
   const deleteMutation = useMutation({
     mutationFn: (targets: StickySessionIdentifier[]) => deleteStickySessions({ sessions: targets }),
-    onSuccess: (response) => {
-      toast.success(
-        response.deletedCount === 1
-          ? "Sticky session removed"
-          : `Removed ${response.deletedCount} sticky sessions`,
-      );
-      invalidate();
+    onSuccess: async (response: StickySessionsDeleteResponse) => {
+      if (response.deletedCount > 0 && response.failed.length === 0) {
+        toast.success(response.deletedCount === 1 ? "Sticky session deleted" : `Deleted ${response.deletedCount} sessions`);
+      } else if (response.deletedCount > 0) {
+        toast.warning(
+          `Deleted ${response.deletedCount} sessions. ${response.failed.length} could not be deleted.`,
+        );
+      } else {
+        toast.error("No selected sessions could be deleted");
+      }
+      await invalidate();
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to remove sticky session");
+      toast.error(error.message || "Failed to delete sticky sessions");
     },
   });
 

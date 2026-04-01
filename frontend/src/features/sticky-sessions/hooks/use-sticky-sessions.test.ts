@@ -66,7 +66,7 @@ describe("useStickySessions", () => {
             entries.splice(index, 1);
           }
         }
-        return HttpResponse.json({ deletedCount: sessions.length });
+        return HttpResponse.json({ deletedCount: sessions.length, deleted: sessions, failed: [] });
       }),
       http.post("/api/sticky-sessions/purge", () => HttpResponse.json({ deletedCount: 0 })),
     );
@@ -107,6 +107,31 @@ describe("useStickySessions", () => {
     });
   });
 
+  it("reports partial bulk-delete failures", async () => {
+    const queryClient = createTestQueryClient();
+    const warningSpy = vi.spyOn(toast, "warning").mockImplementation(() => "");
+    const deleteSpy = vi.spyOn(stickySessionsApi, "deleteStickySessions").mockResolvedValueOnce({
+      deletedCount: 1,
+      deleted: [{ key: "thread_123", kind: "prompt_cache" }],
+      failed: [{ key: "thread_999", kind: "codex_session", reason: "not_found" }],
+    });
+
+    const { result } = renderHook(() => useStickySessions(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.stickySessionsQuery.isSuccess).toBe(true));
+    await result.current.deleteMutation.mutateAsync([
+      { key: "thread_123", kind: "prompt_cache" },
+      { key: "thread_999", kind: "codex_session" },
+    ]);
+
+    expect(warningSpy).toHaveBeenCalledWith("Deleted 1 sessions. 1 could not be deleted.");
+
+    deleteSpy.mockRestore();
+    warningSpy.mockRestore();
+  });
+
   it("uses fallback toast messages when sticky-session mutations fail", async () => {
     const queryClient = createTestQueryClient();
     const toastSpy = vi.spyOn(toast, "error").mockImplementation(() => "");
@@ -127,7 +152,7 @@ describe("useStickySessions", () => {
     ).rejects.toThrow();
     await expect(result.current.purgeMutation.mutateAsync(true)).rejects.toThrow();
 
-    expect(toastSpy).toHaveBeenCalledWith("Failed to remove sticky session");
+    expect(toastSpy).toHaveBeenCalledWith("Failed to delete sticky sessions");
     expect(toastSpy).toHaveBeenCalledWith("Failed to purge sticky sessions");
 
     deleteSpy.mockRestore();

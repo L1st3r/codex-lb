@@ -516,7 +516,14 @@ export const handlers = [
 		state.stickySessions = state.stickySessions.filter(
 			(entry) => !targets.has(`${entry.kind}:${entry.key}`),
 		);
-		return HttpResponse.json({ deletedCount: before - state.stickySessions.length });
+		const deleted = payload.sessions.filter((session) =>
+			targets.has(`${session.kind}:${session.key}`),
+		);
+		return HttpResponse.json({
+			deletedCount: before - state.stickySessions.length,
+			deleted,
+			failed: [],
+		});
 	}),
 
 	http.post("/api/sticky-sessions/purge", async ({ request }) => {

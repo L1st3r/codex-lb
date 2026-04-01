@@ -65,8 +65,18 @@ async def delete_sticky_sessions(
     payload: StickySessionsDeleteRequest,
     context: StickySessionsContext = Depends(get_sticky_sessions_context),
 ) -> StickySessionsDeleteResponse:
-    deleted_count = await context.service.delete_entries([(entry.key, entry.kind) for entry in payload.sessions])
-    return StickySessionsDeleteResponse(deleted_count=deleted_count)
+    result = await context.service.delete_entries([(entry.key, entry.kind) for entry in payload.sessions])
+    return StickySessionsDeleteResponse(
+        deleted_count=result.deleted_count,
+        deleted=[
+            {"key": key, "kind": kind}
+            for key, kind in result.deleted
+        ],
+        failed=[
+            {"key": entry.key, "kind": entry.kind, "reason": entry.reason}
+            for entry in result.failed
+        ],
+    )
 
 
 @router.delete("/{kind}/{key:path}", response_model=StickySessionDeleteResponse)

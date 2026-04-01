@@ -285,11 +285,49 @@ async def test_sticky_sessions_api_deletes_selected_identifiers(async_client):
     )
     assert response.status_code == 200
     assert response.json()["deletedCount"] == 2
+    assert response.json()["deleted"] == [
+        {"key": "shared-key", "kind": "prompt_cache"},
+        {"key": "folder/session", "kind": "sticky_thread"},
+    ]
+    assert response.json()["failed"] == []
 
     response = await async_client.get("/api/sticky-sessions")
     assert response.status_code == 200
     remaining = {(entry["key"], entry["kind"]) for entry in response.json()["entries"]}
     assert remaining == {("shared-key", "codex_session")}
+
+
+@pytest.mark.asyncio
+async def test_sticky_sessions_api_reports_partial_failures_for_bulk_delete(async_client):
+    accounts = await _create_accounts()
+    await _set_affinity_ttl(60)
+
+    await _insert_sticky_session(
+        key="shared-key",
+        account_id=accounts[0].id,
+        kind=StickySessionKind.PROMPT_CACHE,
+        updated_at_offset_seconds=600,
+    )
+
+    response = await async_client.post(
+        "/api/sticky-sessions/delete",
+        json={
+            "sessions": [
+                {"key": "shared-key", "kind": "prompt_cache"},
+                {"key": "missing-key", "kind": "sticky_thread"},
+            ]
+        },
+    )
+    assert response.status_code == 200
+    assert response.json() == {
+        "deletedCount": 1,
+        "deleted": [
+            {"key": "shared-key", "kind": "prompt_cache"},
+        ],
+        "failed": [
+            {"key": "missing-key", "kind": "sticky_thread", "reason": "not_found"},
+        ],
+    }
 
 
 @pytest.mark.asyncio

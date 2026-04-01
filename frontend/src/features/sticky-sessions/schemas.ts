@@ -23,6 +23,12 @@ export const StickySessionsDeleteRequestSchema = z.object({
   sessions: z.array(StickySessionIdentifierSchema).min(1).max(500),
 });
 
+export const StickySessionDeleteFailureSchema = z.object({
+  key: z.string().min(1),
+  kind: StickySessionKindSchema,
+  reason: z.string().min(1),
+});
+
 export const StickySessionsListResponseSchema = z.object({
   entries: z.array(StickySessionEntrySchema).default([]),
   stalePromptCacheCount: z.number().int().nonnegative().default(0),
@@ -38,6 +44,8 @@ export const StickySessionsListParamsSchema = z.object({
 
 export const StickySessionsDeleteResponseSchema = z.object({
   deletedCount: z.number().int().nonnegative(),
+  deleted: z.array(StickySessionIdentifierSchema).default([]),
+  failed: z.array(StickySessionDeleteFailureSchema).default([]),
 });
 
 export const StickySessionsPurgeRequestSchema = z.object({
@@ -54,6 +62,7 @@ export type StickySessionIdentifier = z.infer<typeof StickySessionIdentifierSche
 export type StickySessionsDeleteRequest = z.infer<typeof StickySessionsDeleteRequestSchema>;
 export type StickySessionsListResponse = z.infer<typeof StickySessionsListResponseSchema>;
 export type StickySessionsListParams = z.infer<typeof StickySessionsListParamsSchema>;
+export type StickySessionDeleteFailure = z.infer<typeof StickySessionDeleteFailureSchema>;
 export type StickySessionsDeleteResponse = z.infer<typeof StickySessionsDeleteResponseSchema>;
 export type StickySessionsPurgeRequest = z.infer<typeof StickySessionsPurgeRequestSchema>;
 export type StickySessionsPurgeResponse = z.infer<typeof StickySessionsPurgeResponseSchema>;
