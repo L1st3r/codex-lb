@@ -512,17 +512,23 @@ export const handlers = [
 			}),
 		)) ?? { sessions: [] };
 		const targets = new Set(payload.sessions.map((session) => `${session.kind}:${session.key}`));
-		const before = state.stickySessions.length;
+		const deleted = state.stickySessions
+			.filter((entry) => targets.has(`${entry.kind}:${entry.key}`))
+			.map((entry) => ({ key: entry.key, kind: entry.kind }));
+		const deletedTargets = new Set(deleted.map((entry) => `${entry.kind}:${entry.key}`));
 		state.stickySessions = state.stickySessions.filter(
 			(entry) => !targets.has(`${entry.kind}:${entry.key}`),
 		);
-		const deleted = payload.sessions.filter((session) =>
-			targets.has(`${session.kind}:${session.key}`),
-		);
 		return HttpResponse.json({
-			deletedCount: before - state.stickySessions.length,
+			deletedCount: deleted.length,
 			deleted,
-			failed: [],
+			failed: payload.sessions
+				.filter((session) => !deletedTargets.has(`${session.kind}:${session.key}`))
+				.map((session) => ({
+					key: session.key,
+					kind: session.kind,
+					reason: "not_found",
+				})),
 		});
 	}),
 

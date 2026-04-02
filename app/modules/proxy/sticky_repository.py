@@ -74,17 +74,21 @@ class StickySessionsRepository:
         await self._session.commit()
         return result.scalar_one_or_none() is not None
 
-    async def delete_entries(self, entries: Sequence[tuple[str, StickySessionKind]]) -> int:
+    async def delete_entries(
+        self,
+        entries: Sequence[tuple[str, StickySessionKind]],
+    ) -> list[tuple[str, StickySessionKind]]:
         targets = {(key, kind) for key, kind in entries if key}
         if not targets:
-            return 0
+            return []
         statement = delete(StickySession).where(
             or_(*(and_(StickySession.key == key, StickySession.kind == kind) for key, kind in targets))
         )
-        result = await self._session.execute(statement.returning(StickySession.key))
-        deleted = len(result.scalars().all())
+        result = await self._session.execute(
+            statement.returning(StickySession.key, StickySession.kind)
+        )
         await self._session.commit()
-        return deleted
+        return [(key, kind) for key, kind in result.all()]
 
     async def list_entries(
         self,

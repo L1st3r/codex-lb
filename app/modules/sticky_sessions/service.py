@@ -97,9 +97,9 @@ class StickySessionsService:
         return await self._repository.delete(key, kind=kind)
 
     async def delete_entries(self, entries: Sequence[tuple[str, StickySessionKind]]) -> StickySessionsDeleteData:
-        deleted: list[tuple[str, StickySessionKind]] = []
         failed: list[StickySessionDeleteFailureData] = []
         seen: set[tuple[str, StickySessionKind]] = set()
+        targets: list[tuple[str, StickySessionKind]] = []
 
         for key, kind in entries:
             if not key:
@@ -108,10 +108,13 @@ class StickySessionsService:
             if target in seen:
                 continue
             seen.add(target)
-            removed = await self._repository.delete(key, kind=kind)
-            if removed:
-                deleted.append(target)
-            else:
+            targets.append(target)
+
+        deleted = await self._repository.delete_entries(targets)
+        deleted_set = set(deleted)
+
+        for key, kind in targets:
+            if (key, kind) not in deleted_set:
                 failed.append(StickySessionDeleteFailureData(key=key, kind=kind, reason="not_found"))
 
         return StickySessionsDeleteData(deleted=deleted, failed=failed)
