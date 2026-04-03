@@ -9,6 +9,13 @@ The Settings page SHALL include sections for: routing settings (sticky threads, 
 - **WHEN** a user opens the sticky-session section on the Settings page
 - **THEN** the app fetches sticky-session entries and displays each mapping's kind, account, timestamps, and stale/expiry state
 
+#### Scenario: Filter sticky-session mappings before bulk selection
+
+- **WHEN** a user provides an account search term or sticky-session key search term in the sticky-session section
+- **THEN** the app refetches the sticky-session list using those filters
+- **AND** resets pagination to the first page for the filtered result set
+- **AND** shows only rows that match the active filters
+
 #### Scenario: Select sticky-session rows on the current page
 
 - **WHEN** a user toggles row checkboxes in the sticky-session table

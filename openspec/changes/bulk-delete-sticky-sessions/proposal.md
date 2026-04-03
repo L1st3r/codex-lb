@@ -10,10 +10,11 @@ Bulk session deletion should be available directly from the table so operators c
 - Add a bulk `Delete Sessions` action with confirmation and selected-count messaging.
 - Add backend support for best-effort bulk deletion with per-row failure reporting.
 - Preserve current filters and pagination when the table refreshes after bulk deletion.
+- Add server-backed sticky-session list filters for account search and sticky-key search so operators can narrow deletion targets before bulk selection.
 
 ## Impact
 
 - Specs: `openspec/specs/sticky-session-operations/spec.md`, `openspec/specs/frontend-architecture/spec.md`
 - Backend: sticky-session admin API/service/repository
-- Frontend: sticky-session table selection state, bulk action controls, confirmation UX, refresh behavior
-- Tests: backend bulk-delete API coverage and frontend interaction coverage
+- Frontend: sticky-session table selection state, filter controls, bulk action controls, confirmation UX, refresh behavior
+- Tests: backend sticky-session list filter coverage plus frontend filter and bulk-delete interaction coverage

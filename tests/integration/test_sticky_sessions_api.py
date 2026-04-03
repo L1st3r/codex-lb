@@ -144,6 +144,56 @@ async def test_sticky_sessions_api_lists_metadata_and_purges_stale(async_client)
 
 
 @pytest.mark.asyncio
+async def test_sticky_sessions_api_filters_by_account_and_key(async_client):
+    accounts = await _create_accounts()
+    await _set_affinity_ttl(60)
+    await _insert_sticky_session(
+        key="alpha-thread-1",
+        account_id=accounts[0].id,
+        kind=StickySessionKind.STICKY_THREAD,
+        updated_at_offset_seconds=5,
+    )
+    await _insert_sticky_session(
+        key="alpha-thread-2",
+        account_id=accounts[1].id,
+        kind=StickySessionKind.STICKY_THREAD,
+        updated_at_offset_seconds=10,
+    )
+    await _insert_sticky_session(
+        key="beta-cache",
+        account_id=accounts[0].id,
+        kind=StickySessionKind.PROMPT_CACHE,
+        updated_at_offset_seconds=15,
+    )
+
+    response = await async_client.get("/api/sticky-sessions", params={"accountQuery": "sticky-a"})
+    assert response.status_code == 200
+    assert {(entry["key"], entry["displayName"]) for entry in response.json()["entries"]} == {
+        ("alpha-thread-1", "sticky-a@example.com"),
+        ("beta-cache", "sticky-a@example.com"),
+    }
+    assert response.json()["total"] == 2
+
+    response = await async_client.get("/api/sticky-sessions", params={"keyQuery": "alpha-thread"})
+    assert response.status_code == 200
+    assert {(entry["key"], entry["displayName"]) for entry in response.json()["entries"]} == {
+        ("alpha-thread-1", "sticky-a@example.com"),
+        ("alpha-thread-2", "sticky-b@example.com"),
+    }
+    assert response.json()["total"] == 2
+
+    response = await async_client.get(
+        "/api/sticky-sessions",
+        params={"accountQuery": "sticky-a", "keyQuery": "beta"},
+    )
+    assert response.status_code == 200
+    assert [(entry["key"], entry["displayName"]) for entry in response.json()["entries"]] == [
+        ("beta-cache", "sticky-a@example.com")
+    ]
+    assert response.json()["total"] == 1
+
+
+@pytest.mark.asyncio
 async def test_sticky_sessions_api_rejects_non_stale_purge_requests(async_client):
     accounts = await _create_accounts()
     await _set_affinity_ttl(60)

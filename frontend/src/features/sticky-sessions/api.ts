@@ -19,6 +19,12 @@ export function listStickySessions(params: unknown) {
     offset: String(validated.offset),
     limit: String(validated.limit),
   });
+  if (validated.accountQuery) {
+    searchParams.set("accountQuery", validated.accountQuery);
+  }
+  if (validated.keyQuery) {
+    searchParams.set("keyQuery", validated.keyQuery);
+  }
   return get(`${STICKY_SESSIONS_PATH}?${searchParams.toString()}`, StickySessionsListResponseSchema);
 }
 

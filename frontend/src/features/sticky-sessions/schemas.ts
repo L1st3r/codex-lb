@@ -45,6 +45,8 @@ export const StickySessionsListResponseSchema = z.object({
 
 export const StickySessionsListParamsSchema = z.object({
   staleOnly: z.boolean().default(false),
+  accountQuery: z.string().default(""),
+  keyQuery: z.string().default(""),
   offset: z.number().int().nonnegative().default(0),
   limit: z.number().int().positive().max(500).default(10),
 });

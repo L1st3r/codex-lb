@@ -29,11 +29,20 @@ router = APIRouter(
 async def list_sticky_sessions(
     kind: StickySessionKind | None = Query(default=None),
     stale_only: bool = Query(default=False, alias="staleOnly"),
+    account_query: str | None = Query(default=None, alias="accountQuery"),
+    key_query: str | None = Query(default=None, alias="keyQuery"),
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=500),
     context: StickySessionsContext = Depends(get_sticky_sessions_context),
 ) -> StickySessionsListResponse:
-    result = await context.service.list_entries(kind=kind, stale_only=stale_only, offset=offset, limit=limit)
+    result = await context.service.list_entries(
+        kind=kind,
+        stale_only=stale_only,
+        account_query=account_query,
+        key_query=key_query,
+        offset=offset,
+        limit=limit,
+    )
     return StickySessionsListResponse(
         entries=[
             StickySessionEntryResponse(

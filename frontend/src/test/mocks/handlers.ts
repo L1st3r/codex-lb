@@ -477,13 +477,22 @@ export const handlers = [
 	http.get("/api/sticky-sessions", ({ request }) => {
 		const url = new URL(request.url);
 		const staleOnly = url.searchParams.get("staleOnly") === "true";
+		const accountQuery = (url.searchParams.get("accountQuery") ?? "").trim().toLowerCase();
+		const keyQuery = (url.searchParams.get("keyQuery") ?? "").trim().toLowerCase();
 		const offset = Number(url.searchParams.get("offset") ?? "0");
 		const limit = Number(url.searchParams.get("limit") ?? "10");
-		const filteredEntries = staleOnly
-			? state.stickySessions.filter(
-					(entry) => entry.kind === "prompt_cache" && entry.isStale,
-				)
-			: state.stickySessions;
+		const filteredEntries = state.stickySessions.filter((entry) => {
+			if (staleOnly && !(entry.kind === "prompt_cache" && entry.isStale)) {
+				return false;
+			}
+			if (accountQuery && !entry.displayName.toLowerCase().includes(accountQuery)) {
+				return false;
+			}
+			if (keyQuery && !entry.key.toLowerCase().includes(keyQuery)) {
+				return false;
+			}
+			return true;
+		});
 		const entries = filteredEntries.slice(offset, offset + limit);
 		const stalePromptCacheCount = state.stickySessions.filter(
 			(entry) => entry.kind === "prompt_cache" && entry.isStale,

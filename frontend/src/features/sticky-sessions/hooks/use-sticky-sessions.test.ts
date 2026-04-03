@@ -77,6 +77,8 @@ describe("useStickySessions", () => {
 
     await waitFor(() => expect(result.current.stickySessionsQuery.isSuccess).toBe(true));
     expect(result.current.stickySessionsQuery.data?.entries).toHaveLength(1);
+    expect(result.current.params.accountQuery).toBe("");
+    expect(result.current.params.keyQuery).toBe("");
     expect(seenUrl).toContain("offset=0");
     expect(seenUrl).toContain("limit=10");
 
@@ -104,6 +106,27 @@ describe("useStickySessions", () => {
     await waitFor(() => {
       expect(result.current.params.limit).toBe(25);
       expect(result.current.params.offset).toBe(0);
+    });
+
+    act(() => {
+      result.current.setAccountQuery("sticky-a");
+    });
+    await waitFor(() => {
+      expect(result.current.params.accountQuery).toBe("sticky-a");
+      expect(result.current.params.offset).toBe(0);
+    });
+
+    act(() => {
+      result.current.setKeyQuery("thread_123");
+    });
+    await waitFor(() => {
+      expect(result.current.params.keyQuery).toBe("thread_123");
+      expect(result.current.params.offset).toBe(0);
+    });
+
+    await waitFor(() => {
+      expect(seenUrl).toContain("accountQuery=sticky-a");
+      expect(seenUrl).toContain("keyQuery=thread_123");
     });
   });
 

@@ -60,12 +60,16 @@ class StickySessionsService:
         *,
         kind: StickySessionKind | None = None,
         stale_only: bool = False,
+        account_query: str | None = None,
+        key_query: str | None = None,
         offset: int = 0,
         limit: int = 100,
     ) -> StickySessionListData:
         settings = await self._settings_repository.get_or_create()
         ttl_seconds = settings.openai_cache_affinity_max_age_seconds
         stale_cutoff = utcnow() - timedelta(seconds=ttl_seconds)
+        normalized_account_query = account_query.strip() if account_query else None
+        normalized_key_query = key_query.strip() if key_query else None
         stale_prompt_cache_count = await self._count_stale_prompt_cache_entries(kind=kind, stale_cutoff=stale_cutoff)
         if stale_only and kind not in (None, StickySessionKind.PROMPT_CACHE):
             return StickySessionListData(
@@ -78,10 +82,14 @@ class StickySessionsService:
         total = await self._repository.count_entries(
             kind=effective_kind,
             updated_before=stale_cutoff if stale_only else None,
+            account_query=normalized_account_query,
+            key_query=normalized_key_query,
         )
         rows = await self._repository.list_entries(
             kind=effective_kind,
             updated_before=stale_cutoff if stale_only else None,
+            account_query=normalized_account_query,
+            key_query=normalized_key_query,
             offset=offset,
             limit=limit,
         )

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -19,13 +19,26 @@ export function useStickySessions() {
   const queryClient = useQueryClient();
   const [params, setParams] = useState<StickySessionsListParams>({
     staleOnly: false,
+    accountQuery: "",
+    keyQuery: "",
     offset: 0,
     limit: DEFAULT_STICKY_SESSIONS_LIMIT,
   });
+  const deferredAccountQuery = useDeferredValue(params.accountQuery);
+  const deferredKeyQuery = useDeferredValue(params.keyQuery);
+  const queryParams = useMemo(
+    () => ({
+      ...params,
+      accountQuery: deferredAccountQuery,
+      keyQuery: deferredKeyQuery,
+    }),
+    [deferredAccountQuery, deferredKeyQuery, params],
+  );
 
   const stickySessionsQuery = useQuery({
-    queryKey: ["sticky-sessions", "list", params],
-    queryFn: () => listStickySessions(params),
+    queryKey: ["sticky-sessions", "list", queryParams],
+    queryFn: () => listStickySessions(queryParams),
+    placeholderData: (previousData) => previousData,
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
@@ -41,6 +54,14 @@ export function useStickySessions() {
 
   const setLimit = (limit: number) => {
     setParams((current) => ({ ...current, limit, offset: 0 }));
+  };
+
+  const setAccountQuery = (accountQuery: string) => {
+    setParams((current) => ({ ...current, accountQuery, offset: 0 }));
+  };
+
+  const setKeyQuery = (keyQuery: string) => {
+    setParams((current) => ({ ...current, keyQuery, offset: 0 }));
   };
 
   const deleteMutation = useMutation({
@@ -75,6 +96,8 @@ export function useStickySessions() {
 
   return {
     params,
+    setAccountQuery,
+    setKeyQuery,
     setOffset,
     setLimit,
     stickySessionsQuery,

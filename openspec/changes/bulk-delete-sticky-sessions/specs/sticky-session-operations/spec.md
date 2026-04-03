@@ -15,6 +15,18 @@ The system SHALL provide dashboard APIs for listing sticky-session mappings, del
 - **WHEN** the dashboard requests sticky-session entries with `staleOnly=true`
 - **THEN** the system applies stale prompt-cache filtering before enforcing the result limit
 
+#### Scenario: Filter mappings by account search
+
+- **WHEN** the dashboard requests sticky-session entries with an `accountQuery`
+- **THEN** the system returns only mappings whose account display identifier matches that query
+- **AND** applies the same filter to the reported total before pagination
+
+#### Scenario: Filter mappings by sticky-session key search
+
+- **WHEN** the dashboard requests sticky-session entries with a `keyQuery`
+- **THEN** the system returns only mappings whose sticky-session key matches that query
+- **AND** applies the same filter to the reported total before pagination
+
 #### Scenario: Delete one mapping
 
 - **WHEN** the dashboard deletes a sticky-session mapping by both `key` and `kind`

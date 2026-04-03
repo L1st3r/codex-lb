@@ -4,11 +4,11 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from sqlalchemy import and_, delete, or_, select
+from sqlalchemy import and_, delete, func, or_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql import Insert, func
+from sqlalchemy.sql import Insert
 
 from app.core.utils.time import to_utc_naive, utcnow
 from app.db.models import Account, StickySession, StickySessionKind
@@ -93,6 +93,8 @@ class StickySessionsRepository:
         *,
         kind: StickySessionKind | None = None,
         updated_before: datetime | None = None,
+        account_query: str | None = None,
+        key_query: str | None = None,
         offset: int = 0,
         limit: int | None = None,
     ) -> Sequence[StickySessionListEntryRecord]:
@@ -101,6 +103,8 @@ class StickySessionsRepository:
                 select(StickySession, Account.email),
                 kind=kind,
                 updated_before=updated_before,
+                account_query=account_query,
+                key_query=key_query,
             )
             .join(Account, Account.id == StickySession.account_id)
             .order_by(
@@ -124,11 +128,15 @@ class StickySessionsRepository:
         *,
         kind: StickySessionKind | None = None,
         updated_before: datetime | None = None,
+        account_query: str | None = None,
+        key_query: str | None = None,
     ) -> int:
         statement = self._apply_filters(
-            select(func.count()).select_from(StickySession),
+            select(func.count()).select_from(StickySession).join(Account, Account.id == StickySession.account_id),
             kind=kind,
             updated_before=updated_before,
+            account_query=account_query,
+            key_query=key_query,
         )
         result = await self._session.execute(statement)
         return int(result.scalar_one())
@@ -168,9 +176,15 @@ class StickySessionsRepository:
         *,
         kind: StickySessionKind | None,
         updated_before: datetime | None,
+        account_query: str | None,
+        key_query: str | None,
     ):
         if kind is not None:
             statement = statement.where(StickySession.kind == kind)
         if updated_before is not None:
             statement = statement.where(StickySession.updated_at < to_utc_naive(updated_before))
+        if account_query:
+            statement = statement.where(func.lower(Account.email).contains(account_query.lower()))
+        if key_query:
+            statement = statement.where(func.lower(StickySession.key).contains(key_query.lower()))
         return statement

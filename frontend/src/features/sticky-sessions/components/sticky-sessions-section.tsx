@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { SpinnerBlock } from "@/components/ui/spinner";
 import {
   Table,
@@ -41,7 +42,16 @@ function stickySessionRowId(entry: StickySessionIdentifier): string {
 const EMPTY_STICKY_SESSION_ENTRIES: StickySessionEntry[] = [];
 
 export function StickySessionsSection() {
-  const { params, setLimit, setOffset, stickySessionsQuery, deleteMutation, purgeMutation } = useStickySessions();
+  const {
+    params,
+    setAccountQuery,
+    setKeyQuery,
+    setLimit,
+    setOffset,
+    stickySessionsQuery,
+    deleteMutation,
+    purgeMutation,
+  } = useStickySessions();
   const deleteDialog = useDialogState<StickySessionIdentifier>();
   const deleteSelectedDialog = useDialogState<StickySessionIdentifier[]>();
   const purgeDialog = useDialogState();
@@ -118,6 +128,21 @@ export function StickySessionsSection() {
       </div>
 
       {mutationError ? <AlertMessage variant="error">{mutationError}</AlertMessage> : null}
+
+      <div className="grid gap-2 sm:grid-cols-2">
+        <Input
+          aria-label="Filter sticky sessions by account"
+          placeholder="Filter by account..."
+          value={params.accountQuery}
+          onChange={(event) => setAccountQuery(event.target.value)}
+        />
+        <Input
+          aria-label="Filter sticky sessions by key"
+          placeholder="Filter by key..."
+          value={params.keyQuery}
+          onChange={(event) => setKeyQuery(event.target.value)}
+        />
+      </div>
 
       <div className="flex flex-col gap-3 rounded-lg border px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">

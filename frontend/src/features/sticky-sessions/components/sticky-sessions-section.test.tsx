@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -18,6 +18,8 @@ describe("StickySessionsSection", () => {
 
   it("renders rows and supports selection, purge, and remove actions", async () => {
     const user = userEvent.setup();
+    const setAccountQuery = vi.fn();
+    const setKeyQuery = vi.fn();
     const deleteMutation = {
       mutateAsync: vi.fn().mockResolvedValue({ deletedCount: 2, deleted: [], failed: [] }),
       isPending: false,
@@ -32,9 +34,13 @@ describe("StickySessionsSection", () => {
     useStickySessionsMock.mockReturnValue({
       params: {
         staleOnly: false,
+        accountQuery: "",
+        keyQuery: "",
         offset: 0,
         limit: 10,
       },
+      setAccountQuery,
+      setKeyQuery,
       setOffset: vi.fn(),
       setLimit: vi.fn(),
       stickySessionsQuery: {
@@ -83,6 +89,12 @@ describe("StickySessionsSection", () => {
     expect(screen.getByText("1")).toBeInTheDocument();
     expect(screen.getByText("1–2 of 2")).toBeInTheDocument();
 
+    fireEvent.change(screen.getByPlaceholderText("Filter by account..."), { target: { value: "sticky-a" } });
+    expect(setAccountQuery).toHaveBeenLastCalledWith("sticky-a");
+
+    fireEvent.change(screen.getByPlaceholderText("Filter by key..."), { target: { value: "session-1" } });
+    expect(setKeyQuery).toHaveBeenLastCalledWith("session-1");
+
     await user.click(screen.getByRole("checkbox", { name: "Select all sticky sessions on current page" }));
     expect(screen.getByText("Selected")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Delete Sessions" })).toBeEnabled();
@@ -129,9 +141,13 @@ describe("StickySessionsSection", () => {
     useStickySessionsMock.mockReturnValue({
       params: {
         staleOnly: false,
+        accountQuery: "",
+        keyQuery: "",
         offset: 10,
         limit: 10,
       },
+      setAccountQuery: vi.fn(),
+      setKeyQuery: vi.fn(),
       setOffset,
       setLimit: vi.fn(),
       stickySessionsQuery: {
@@ -167,9 +183,13 @@ describe("StickySessionsSection", () => {
     useStickySessionsMock.mockReturnValue({
       params: {
         staleOnly: false,
+        accountQuery: "",
+        keyQuery: "",
         offset: 0,
         limit: 10,
       },
+      setAccountQuery: vi.fn(),
+      setKeyQuery: vi.fn(),
       setOffset,
       setLimit,
       stickySessionsQuery: {
@@ -219,9 +239,13 @@ describe("StickySessionsSection", () => {
     useStickySessionsMock.mockReturnValue({
       params: {
         staleOnly: false,
+        accountQuery: "",
+        keyQuery: "",
         offset: 0,
         limit: 10,
       },
+      setAccountQuery: vi.fn(),
+      setKeyQuery: vi.fn(),
       setOffset,
       setLimit: vi.fn(),
       stickySessionsQuery: {
