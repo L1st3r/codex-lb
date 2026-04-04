@@ -1,15 +1,22 @@
 from __future__ import annotations
 
 import ctypes
+import importlib
 import logging
 import os
 import sys
 from ctypes import wintypes
+from types import ModuleType
 
-try:
-    import resource as _resource
-except ImportError:
-    _resource = None
+
+def _load_resource_module() -> ModuleType | None:
+    try:
+        return importlib.import_module("resource")
+    except ImportError:
+        return None
+
+
+_resource = _load_resource_module()
 
 logger = logging.getLogger(__name__)
 

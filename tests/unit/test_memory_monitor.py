@@ -28,15 +28,15 @@ def test_memory_monitor_imports_on_windows_without_resource(monkeypatch: pytest.
     module_name = "app.core.resilience.memory_monitor"
     original_module = sys.modules.get(module_name)
     sys.modules.pop(module_name, None)
-    real_import = builtins.__import__
+    real_import_module = importlib.import_module
 
-    def fake_import(name: str, globals=None, locals=None, fromlist=(), level: int = 0):
+    def fake_import_module(name: str, package: str | None = None):
         if name == "resource":
             raise ModuleNotFoundError("No module named 'resource'")
-        return real_import(name, globals, locals, fromlist, level)
+        return real_import_module(name, package)
 
     monkeypatch.setattr(sys, "platform", "win32")
-    monkeypatch.setattr(builtins, "__import__", fake_import)
+    monkeypatch.setattr(importlib, "import_module", fake_import_module)
 
     try:
         module = importlib.import_module(module_name)
